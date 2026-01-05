@@ -1,0 +1,54 @@
+---
+# Example: Simple NGINX Deployment with Service
+# This demonstrates basic Kubernetes concepts: Deployment, Service, and LoadBalancer
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  replicas: 2  # Run 2 copies of the pod
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            cpu: 100m      # Request 0.1 CPU
+            memory: 128Mi  # Request 128MB memory
+          limits:
+            cpu: 500m      # Limit to 0.5 CPU
+            memory: 512Mi  # Limit to 512MB memory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  annotations:
+    # Use AWS Network Load Balancer (cheaper than Classic LB)
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    # Make it internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: nginx
+
+
