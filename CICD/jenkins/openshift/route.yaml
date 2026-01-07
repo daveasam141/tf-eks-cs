@@ -1,0 +1,28 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: cicd-app
+  namespace: cicd-app
+  labels:
+    app: cicd-app
+spec:
+  to:
+    kind: Service
+    name: cicd-app
+    weight: 100
+  port:
+    targetPort: http
+  # TLS configuration (optional - uncomment if using cert-manager)
+  # tls:
+  #   termination: edge
+  #   insecureEdgeTerminationPolicy: Redirect
+  #   certificate: |
+  #     -----BEGIN CERTIFICATE-----
+  #     ...
+  #     -----END CERTIFICATE-----
+  #   key: |
+  #     -----BEGIN PRIVATE KEY-----
+  #     ...
+  #     -----END PRIVATE KEY-----
+  wildcardPolicy: None
+

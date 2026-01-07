@@ -1,0 +1,174 @@
+pipeline {
+    agent any
+    
+    environment {
+        // Docker Hub configuration
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKERHUB_USERNAME = credentials('dockerhub-username')
+        IMAGE_NAME = 'cicd-learning-app'
+        REGISTRY = 'docker.io'
+        
+        // OpenShift/Kubernetes configuration
+        NAMESPACE = 'cicd-app'
+        APP_NAME = 'cicd-app'
+        
+        // Image tag based on branch
+        IMAGE_TAG = "${env.BRANCH_NAME == 'main' ? 'latest' : env.BRANCH_NAME}"
+        FULL_IMAGE_NAME = "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "Checking out code from ${env.GIT_URL}"
+                    checkout scm
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                dir('CICD/app') {
+                    script {
+                        echo "Running Python tests..."
+                        sh '''
+                            python3 -m venv venv
+                            source venv/bin/activate
+                            pip install --upgrade pip
+                            pip install -r requirements.txt
+                            pip install pytest pytest-cov flake8
+                            python -m pytest test_app.py -v --cov=app --cov-report=term-missing
+                            flake8 app.py test_app.py --max-line-length=100 --exclude=__pycache__ || true
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                dir('CICD/app') {
+                    script {
+                        echo "Building Docker image: ${FULL_IMAGE_NAME}"
+                        sh """
+                            docker build \
+                                --build-arg APP_VERSION=${env.BUILD_NUMBER} \
+                                -t ${FULL_IMAGE_NAME} \
+                                -t ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${env.BUILD_NUMBER} \
+                                .
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Security Scan') {
+            steps {
+                script {
+                    echo "Scanning Docker image for vulnerabilities..."
+                    sh """
+                        # Install Trivy if not available
+                        if ! command -v trivy &> /dev/null; then
+                            echo "Installing Trivy..."
+                            wget -qO- https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz | tar -xz
+                            sudo mv trivy /usr/local/bin/
+                        fi
+                        
+                        trivy image --exit-code 0 --severity HIGH,CRITICAL ${FULL_IMAGE_NAME} || true
+                    """
+                }
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    echo "Pushing image to Docker Hub..."
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin ${REGISTRY}
+                            docker push ${FULL_IMAGE_NAME}
+                            docker push ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${env.BUILD_NUMBER}
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
+                    echo "Deploying to OpenShift namespace: ${NAMESPACE} using OpenShift Client Plugin"
+                    
+                    // Use OpenShift Client Plugin (no CLI tools needed!)
+                    openshift.withCluster() {
+                        openshift.withProject("${NAMESPACE}") {
+                            // Create project if it doesn't exist
+                            try {
+                                openshift.newProject("${NAMESPACE}", "--display-name=CI/CD App")
+                            } catch (Exception e) {
+                                echo "Project ${NAMESPACE} already exists or error: ${e.message}"
+                            }
+                            
+                            // Read and apply manifests
+                            dir('CICD/k8s-manifests') {
+                                // Update image in deployment.yaml
+                                def deploymentYaml = readFile('deployment.yaml')
+                                deploymentYaml = deploymentYaml.replaceAll(
+                                    /image:\s*.*${IMAGE_NAME}.*/,
+                                    "image: ${FULL_IMAGE_NAME}"
+                                )
+                                deploymentYaml = deploymentYaml.replaceAll(
+                                    /(name:\s*APP_VERSION\s+value:\s*)"[^"]*"/,
+                                    "\$1\"${env.BUILD_NUMBER}\""
+                                )
+                                writeFile file: 'deployment-updated.yaml', text: deploymentYaml
+                                
+                                // Apply manifests
+                                openshift.apply(readFile('namespace.yaml'))
+                                openshift.apply(readFile('deployment-updated.yaml'))
+                                openshift.apply(readFile('service.yaml'))
+                                
+                                // Apply ingress or route if exists
+                                if (fileExists('route.yaml')) {
+                                    openshift.apply(readFile('route.yaml'))
+                                } else if (fileExists('ingress.yaml')) {
+                                    openshift.apply(readFile('ingress.yaml'))
+                                }
+                            }
+                            
+                            // Wait for deployment rollout
+                            def deployment = openshift.selector("deployment", "${APP_NAME}")
+                            deployment.rollout().status("--timeout=5m")
+                            
+                            echo "Deployment successful! Application is running in ${NAMESPACE}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            script {
+                echo "Pipeline succeeded! Application deployed to OpenShift"
+                echo "Image: ${FULL_IMAGE_NAME}"
+                echo "Build Number: ${env.BUILD_NUMBER}"
+            }
+        }
+        failure {
+            script {
+                echo "Pipeline failed! Check logs above for details."
+            }
+        }
+        always {
+            script {
+                // Clean up Docker images to save space
+                sh "docker image prune -f || true"
+            }
+        }
+    }
+}
+

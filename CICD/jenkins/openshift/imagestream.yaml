@@ -1,0 +1,18 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: cicd-app
+  namespace: cicd-app
+  labels:
+    app: cicd-app
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+  - name: latest
+    from:
+      kind: DockerImage
+      name: YOUR_DOCKERHUB_USERNAME/cicd-learning-app:latest
+    importPolicy:
+      scheduled: true
+

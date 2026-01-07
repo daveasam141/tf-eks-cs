@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cicd-app
+  namespace: argocd
+  # Add finalizer to ensure proper cleanup
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    # Repository containing your Kubernetes manifests
+    repoURL: https://github.com/YOUR_USERNAME/YOUR_REPO.git  # CHANGE THIS
+    targetRevision: main  # Branch to watch
+    path: CICD/k8s-manifests  # Path to manifests in the repo
+    
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cicd-app
+    
+  syncPolicy:
+    automated:
+      # Automatically sync when changes are detected in Git
+      prune: true  # Delete resources that are no longer in Git
+      selfHeal: true  # Automatically sync if cluster state drifts
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true  # Create namespace if it doesn't exist
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    
+  # Health checks
+  health:
+    status: Healthy
+    
+  # Ignore differences in certain fields (optional)
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas  # Ignore replica count differences
+
