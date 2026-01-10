@@ -191,7 +191,7 @@ pipeline {
             }
         }
         always {
-            node {
+            node('any') {
                 script {
                     // Clean up Docker images to save space
                     sh "docker image prune -f || true"
