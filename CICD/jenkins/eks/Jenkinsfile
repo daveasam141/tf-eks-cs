@@ -1,0 +1,187 @@
+pipeline {
+    agent any
+    
+    environment {
+        // Docker Hub configuration
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKERHUB_USERNAME = credentials('dockerhub-username')
+        IMAGE_NAME = 'cicd-learning-app'
+        REGISTRY = 'docker.io'
+        
+        // EKS/Kubernetes configuration
+        NAMESPACE = 'cicd-app'
+        APP_NAME = 'cicd-app'
+        
+        // Image tag based on branch
+        IMAGE_TAG = "${env.BRANCH_NAME == 'main' ? 'latest' : env.BRANCH_NAME}"
+        FULL_IMAGE_NAME = "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "Checking out code from ${env.GIT_URL}"
+                    checkout scm
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                dir('CICD/app') {
+                    script {
+                        echo "Running Python tests..."
+                        sh '''
+                            python3 -m venv venv
+                            source venv/bin/activate
+                            pip install --upgrade pip
+                            pip install -r requirements.txt
+                            pip install pytest pytest-cov flake8
+                            python -m pytest test_app.py -v --cov=app --cov-report=term-missing
+                            flake8 app.py test_app.py --max-line-length=100 --exclude=__pycache__ || true
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                dir('CICD/app') {
+                    script {
+                        echo "Building Docker image: ${FULL_IMAGE_NAME}"
+                        sh """
+                            docker build \
+                                --build-arg APP_VERSION=${env.BUILD_NUMBER} \
+                                -t ${FULL_IMAGE_NAME} \
+                                -t ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${env.BUILD_NUMBER} \
+                                .
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Security Scan') {
+            steps {
+                script {
+                    echo "Scanning Docker image for vulnerabilities..."
+                    sh """
+                        # Install Trivy if not available
+                        if ! command -v trivy &> /dev/null; then
+                            echo "Installing Trivy..."
+                            wget -qO- https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz | tar -xz
+                            sudo mv trivy /usr/local/bin/
+                        fi
+                        
+                        trivy image --exit-code 0 --severity HIGH,CRITICAL ${FULL_IMAGE_NAME} || true
+                    """
+                }
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    echo "Pushing image to Docker Hub..."
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin ${REGISTRY}
+                            docker push ${FULL_IMAGE_NAME}
+                            docker push ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${env.BUILD_NUMBER}
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    echo "Deploying to EKS namespace: ${NAMESPACE}"
+                    echo "Using Kubernetes CLI plugin - no manual kubectl installation needed"
+                    
+                    // Verify cluster access using Kubernetes CLI plugin
+                    // The plugin automatically uses:
+                    // - Service account token if Jenkins is running in Kubernetes
+                    // - Or kubeconfig credential if configured (see Jenkins credentials)
+                    echo "Verifying cluster access..."
+                    kubectl(args: "version --client")
+                    try {
+                        kubectl(args: "get nodes")
+                    } catch (Exception e) {
+                        echo "Warning: Could not access cluster nodes, but continuing..."
+                    }
+                    
+                    // Create namespace (idempotent - won't fail if exists)
+                    echo "Creating namespace ${NAMESPACE}..."
+                    sh """
+                        kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                    """
+                    echo "Namespace ${NAMESPACE} ready"
+                    
+                    // Update deployment with new image and apply manifests
+                    dir('CICD/jenkins/eks') {
+                        script {
+                            // Update image in deployment.yaml
+                            sh """
+                                perl -i -pe "s|image:.*${IMAGE_NAME}.*|image: ${FULL_IMAGE_NAME}|g" deployment.yaml
+                                
+                                # Update APP_VERSION with build number
+                                perl -i -pe "s|(name: APP_VERSION\\s+value: )\".*\"|\1\"${env.BUILD_NUMBER}\"|g" deployment.yaml || true
+                            """
+                            
+                            // Apply manifests using Kubernetes CLI plugin
+                            echo "Applying Kubernetes manifests..."
+                            kubectl(args: "apply -f namespace.yaml")
+                            kubectl(args: "apply -f deployment.yaml")
+                            kubectl(args: "apply -f service.yaml")
+                            
+                            // Apply ingress if it exists
+                            if (fileExists('ingress.yaml')) {
+                                kubectl(args: "apply -f ingress.yaml")
+                            }
+                            
+                            echo "Manifests applied successfully"
+                        }
+                    }
+                    
+                    // Wait for rollout
+                    echo "Waiting for deployment rollout to complete..."
+                    try {
+                        kubectl(args: "rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=5m")
+                    } catch (Exception e) {
+                        echo "Warning: Rollout status check failed or timed out, but continuing..."
+                    }
+                    
+                    // Show deployment status
+                    echo "Deployment status:"
+                    kubectl(args: "get pods -n ${NAMESPACE} -l app=${APP_NAME}")
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            script {
+                echo "Pipeline succeeded! Application deployed to EKS"
+                echo "Image: ${FULL_IMAGE_NAME}"
+                echo "Build Number: ${env.BUILD_NUMBER}"
+                echo "Namespace: ${NAMESPACE}"
+            }
+        }
+        failure {
+            script {
+                echo "Pipeline failed! Check logs above for details."
+            }
+        }
+        always {
+            script {
+                // Clean up Docker images to save space
+                sh "docker image prune -f || true"
+            }
+        }
+    }
+}

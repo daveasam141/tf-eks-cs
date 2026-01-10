@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cicd-app
+  namespace: cicd-app
+  labels:
+    app: cicd-app
+  annotations:
+    # NGINX Ingress Controller annotations
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # External DNS annotation (uncomment if using External DNS)
+    # external-dns.alpha.kubernetes.io/hostname: cicd-app.example.com
+    # cert-manager annotation (uncomment if using cert-manager)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  # TLS configuration (uncomment if using cert-manager)
+  # tls:
+  # - hosts:
+  #   - cicd-app.example.com
+  #   secretName: cicd-app-tls
+  rules:
+  - host: cicd-app.2waveyyyy.com  # Change to your domain or remove for default
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cicd-app
+            port:
+              number: 80
+  # If you don't have a domain, you can remove the host field to use the default ingress IP
+  # - http:
+  #     paths:
+  #     - path: /
+  #       pathType: Prefix
+  #       backend:
+  #         service:
+  #           name: cicd-app
+  #           port:
+  #             number: 80
