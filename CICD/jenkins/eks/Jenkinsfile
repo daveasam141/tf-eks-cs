@@ -191,10 +191,12 @@ pipeline {
             }
         }
         always {
-            node('any') {
-                script {
-                    // Clean up Docker images to save space
+            script {
+                // Clean up Docker images to save space (optional - won't fail if no workspace)
+                try {
                     sh "docker image prune -f || true"
+                } catch (Exception e) {
+                    echo "Cleanup skipped: ${e.message}"
                 }
             }
         }
