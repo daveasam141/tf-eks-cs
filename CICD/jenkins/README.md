@@ -113,6 +113,28 @@ echo
    - **Description**: Docker Hub username
 3. Click **Create**
 
+### Add GitHub Credentials (If Private Repository)
+
+**Only needed if your GitHub repository is private.**
+
+1. Jenkins UI → **Manage Jenkins** → **Credentials**
+2. Click **System** → **Global credentials** → **Add Credentials**
+3. Fill in:
+   - **Kind**: Secret text
+   - **Scope**: Global
+   - **Secret**: Your GitHub Personal Access Token
+   - **ID**: `github-token` (or any ID you prefer)
+   - **Description**: GitHub Personal Access Token
+4. Click **Create**
+
+**To create a GitHub Personal Access Token:**
+1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Generate new token (classic)
+3. Select scopes: `repo` (for private repos)
+4. Copy the token and use it in Jenkins
+
+**Note**: If your repository is public, you don't need GitHub credentials.
+
 ### Verify OpenShift Access
 
 Jenkins should already have access to OpenShift (since it's running in OpenShift). Verify:

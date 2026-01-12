@@ -369,3 +369,9 @@ This builds directly in OpenShift, but for learning Jenkins, building in Jenkins
 - [Jenkins Pipeline Syntax](https://www.jenkins.io/doc/book/pipeline/syntax/)
 - [OpenShift CLI Reference](https://docs.openshift.com/container-platform/latest/cli_reference/)
 
+
+
+## my notes
+- if you uninstall jenkins and you want to use the same pv again make sure that the pv is in an available state after you delete jenkins. you do this by updating the claimRef so that it is not bound to the old pvc
+oc patch pv <old-pv-name> -p '{"spec":{"claimRef": null}}'
+- reinstall jenkins
