@@ -1,20 +1,50 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  serviceAccountName: jenkins
+  containers:
+  - name: jnlp
+    image: your-dockerhub-username/jenkins-agent-cicd:latest
+    env:
+    - name: CONTAINER_ENV_VAR
+      value: ""
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+"""
+        }
+    }
     
     environment {
         // Docker Hub configuration
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKERHUB_USERNAME = credentials('dockerhub-username')
         IMAGE_NAME = 'cicd-learning-app'
         REGISTRY = 'docker.io'
         
-        // OpenShift/Kubernetes configuration
+        // EKS/Kubernetes configuration
         NAMESPACE = 'cicd-app'
         APP_NAME = 'cicd-app'
         
         // Image tag based on branch
         IMAGE_TAG = "${env.BRANCH_NAME == 'main' ? 'latest' : env.BRANCH_NAME}"
-        FULL_IMAGE_NAME = "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
     }
     
     stages {
@@ -50,14 +80,17 @@ pipeline {
             steps {
                 dir('CICD/app') {
                     script {
-                        echo "Building Docker image: ${FULL_IMAGE_NAME}"
-                        sh """
-                            docker build \
-                                --build-arg APP_VERSION=${env.BUILD_NUMBER} \
-                                -t ${FULL_IMAGE_NAME} \
-                                -t ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${env.BUILD_NUMBER} \
-                                .
-                        """
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            env.FULL_IMAGE_NAME = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                            echo "Building Docker image: ${env.FULL_IMAGE_NAME}"
+                            sh """
+                                docker build \
+                                    --build-arg APP_VERSION=${env.BUILD_NUMBER} \
+                                    -t ${env.FULL_IMAGE_NAME} \
+                                    -t ${DOCKER_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} \
+                                    .
+                            """
+                        }
                     }
                 }
             }
@@ -66,17 +99,13 @@ pipeline {
         stage('Security Scan') {
             steps {
                 script {
-                    echo "Scanning Docker image for vulnerabilities..."
-                    sh """
-                        # Install Trivy if not available
-                        if ! command -v trivy &> /dev/null; then
-                            echo "Installing Trivy..."
-                            wget -qO- https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz | tar -xz
-                            sudo mv trivy /usr/local/bin/
-                        fi
-                        
-                        trivy image --exit-code 0 --severity HIGH,CRITICAL ${FULL_IMAGE_NAME} || true
-                    """
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        env.FULL_IMAGE_NAME = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        echo "Scanning Docker image for vulnerabilities..."
+                        sh """
+                            trivy image --exit-code 0 --severity HIGH,CRITICAL ${env.FULL_IMAGE_NAME} || true
+                        """
+                    }
                 }
             }
         }
@@ -84,190 +113,75 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    echo "Pushing image to Docker Hub..."
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        env.FULL_IMAGE_NAME = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        echo "Pushing image to Docker Hub..."
                         sh """
                             echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin ${REGISTRY}
-                            docker push ${FULL_IMAGE_NAME}
-                            docker push ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${env.BUILD_NUMBER}
+                            docker push ${env.FULL_IMAGE_NAME}
+                            docker push ${DOCKER_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}
                         """
                     }
                 }
             }
         }
         
-        stage('Install OpenShift CLI') {
+        stage('Deploy to EKS') {
             steps {
                 script {
-                    echo "Installing OpenShift CLI (oc) during pipeline execution..."
-                    echo "Note: This installation happens each time the pipeline runs."
-                    echo "For permanent installation, see SETUP-JENKINS-OPENSHIFT.md"
+                    echo "Deploying to EKS namespace: ${NAMESPACE}"
                     
-                    sh """
-                        # Check if oc is available
-                        if ! command -v oc &> /dev/null; then
-                            echo "oc CLI not found, installing..."
-                            
-                            # Create bin directory if it doesn't exist
-                            mkdir -p /tmp/jenkins-bin
-                            export PATH="/tmp/jenkins-bin:\$PATH"
-                            
-                            # Download oc CLI
-                            ARCH=\$(uname -m)
-                            if [ "\$ARCH" = "x86_64" ]; then
-                                OC_ARCH="amd64"
-                            elif [ "\$ARCH" = "aarch64" ] || [ "\$ARCH" = "arm64" ]; then
-                                OC_ARCH="arm64"
-                            else
-                                OC_ARCH="amd64"
-                            fi
-                            
-                            echo "Downloading oc CLI for architecture: \$OC_ARCH"
-                            
-                            # Try multiple sources for oc CLI
-                            curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux-\${OC_ARCH}.tar.gz -o /tmp/oc.tar.gz && \\
-                            tar -xz -C /tmp/jenkins-bin -f /tmp/oc.tar.gz oc && \\
-                            chmod +x /tmp/jenkins-bin/oc && \\
-                            rm /tmp/oc.tar.gz && \\
-                            echo "Successfully installed oc from OpenShift mirror" || \\
-                            
-                            curl -sL https://github.com/openshift/okd/releases/download/4.12.0-0.okd-2023-05-13-022505/openshift-client-linux-\${OC_ARCH}.tar.gz -o /tmp/oc.tar.gz && \\
-                            tar -xz -C /tmp/jenkins-bin -f /tmp/oc.tar.gz oc && \\
-                            chmod +x /tmp/jenkins-bin/oc && \\
-                            rm /tmp/oc.tar.gz && \\
-                            echo "Successfully installed oc from GitHub" || \\
-                            
-                            echo "WARNING: Could not install oc CLI. Will try to use kubectl or OpenShift plugin."
-                            
-                            # Export PATH for subsequent steps
-                            echo "/tmp/jenkins-bin" > /tmp/jenkins-path.txt
-                        else
-                            echo "oc CLI already available at: \$(which oc)"
-                        fi
-                        
-                        # Verify installation
-                        if command -v oc &> /dev/null || [ -f /tmp/jenkins-bin/oc ]; then
-                            if [ -f /tmp/jenkins-bin/oc ]; then
-                                /tmp/jenkins-bin/oc version --client
-                                echo "oc CLI installed successfully"
-                            else
-                                oc version --client
-                            fi
-                        elif command -v kubectl &> /dev/null; then
-                            echo "Using kubectl (oc not available)"
-                            kubectl version --client
-                        else
-                            echo "WARNING: Neither oc nor kubectl available!"
-                            echo "Consider installing OpenShift Client Plugin in Jenkins"
-                            echo "See: Jenkinsfile.openshift-plugin for plugin-based approach"
-                        fi
-                    """
-                }
-            }
-        }
-        
-        stage('Deploy to OpenShift') {
-            steps {
-                script {
-                    echo "Deploying to OpenShift namespace: ${NAMESPACE}"
+                    // Verify cluster access
+                    echo "Verifying cluster access..."
+                    sh "kubectl version --client"
                     
-                    // Set up PATH for oc if installed in previous stage
+                    // Create namespace (idempotent)
+                    echo "Creating namespace ${NAMESPACE}..."
                     sh """
-                        if [ -f /tmp/jenkins-path.txt ]; then
-                            export PATH="\$(cat /tmp/jenkins-path.txt):\$PATH"
-                        fi
-                        
-                        # Determine which CLI to use
-                        if command -v oc &> /dev/null || [ -f /tmp/jenkins-bin/oc ]; then
-                            if [ -f /tmp/jenkins-bin/oc ]; then
-                                CLI_CMD="/tmp/jenkins-bin/oc"
-                            else
-                                CLI_CMD="oc"
-                            fi
-                            echo "Using OpenShift CLI (oc)"
-                            \$CLI_CMD whoami || echo "Note: oc whoami may fail, but deployment will still work"
-                        elif command -v kubectl &> /dev/null; then
-                            CLI_CMD="kubectl"
-                            echo "Using Kubernetes CLI (kubectl)"
-                        else
-                            echo "ERROR: No CLI available!"
-                            echo "Please install OpenShift Client Plugin or ensure oc/kubectl is available"
-                            exit 1
-                        fi
+                        kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
                     """
                     
-                    // Create namespace/project
-                    sh """
-                        if [ -f /tmp/jenkins-path.txt ]; then
-                            export PATH="\$(cat /tmp/jenkins-path.txt):\$PATH"
-                        fi
-                        
-                        if command -v oc &> /dev/null || [ -f /tmp/jenkins-bin/oc ]; then
-                            if [ -f /tmp/jenkins-bin/oc ]; then
-                                /tmp/jenkins-bin/oc project ${NAMESPACE} 2>/dev/null || /tmp/jenkins-bin/oc new-project ${NAMESPACE}
-                            else
-                                oc project ${NAMESPACE} 2>/dev/null || oc new-project ${NAMESPACE}
-                            fi
-                        else
-                            kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-                        fi
-                    """
-                    
-                    // Update deployment with new image
-                    dir('CICD/k8s-manifests') {
-                        sh """
-                            # Set up PATH
-                            if [ -f /tmp/jenkins-path.txt ]; then
-                                export PATH="\$(cat /tmp/jenkins-path.txt):\$PATH"
-                            fi
+                    // Update deployment with new image and apply manifests
+                    dir('CICD/jenkins/eks') {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            if (!env.FULL_IMAGE_NAME) {
+                                env.FULL_IMAGE_NAME = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                            }
                             
-                            # Determine CLI command
-                            if command -v oc &> /dev/null || [ -f /tmp/jenkins-bin/oc ]; then
-                                if [ -f /tmp/jenkins-bin/oc ]; then
-                                    CLI="/tmp/jenkins-bin/oc"
-                                else
-                                    CLI="oc"
+                            // Update image in deployment.yaml
+                            sh """
+                                perl -i -pe "s|image:.*${IMAGE_NAME}.*|image: ${env.FULL_IMAGE_NAME}|g" deployment.yaml
+                                
+                                # Update APP_VERSION with build number
+                                perl -i -pe "s|(name: APP_VERSION\\s+value: )\".*\"|\1\"${env.BUILD_NUMBER}\"|g" deployment.yaml || true
+                            """
+                        
+                            // Apply manifests
+                            echo "Applying Kubernetes manifests..."
+                            sh """
+                                kubectl apply -f namespace.yaml
+                                kubectl apply -f deployment.yaml
+                                kubectl apply -f service.yaml
+                            """
+                            
+                            // Apply ingress if it exists
+                            sh """
+                                if [ -f ingress.yaml ]; then
+                                    kubectl apply -f ingress.yaml
                                 fi
-                            else
-                                CLI="kubectl"
-                            fi
-                            
-                            # Update image in deployment.yaml
-                            perl -i -pe "s|image:.*${IMAGE_NAME}.*|image: ${FULL_IMAGE_NAME}|g" deployment.yaml
-                            
-                            # Update APP_VERSION with build number
-                            perl -i -pe "s|(name: APP_VERSION\\s+value: )\".*\"|\1\"${env.BUILD_NUMBER}\"|g" deployment.yaml || true
-                            
-                            # Apply manifests
-                            \${CLI} apply -f namespace.yaml
-                            \${CLI} apply -f deployment.yaml
-                            \${CLI} apply -f service.yaml
-                            
-                            # Apply ingress or route
-                            if [ -f route.yaml ] && (command -v oc &> /dev/null || [ -f /tmp/jenkins-bin/oc ]); then
-                                \${CLI} apply -f route.yaml
-                            elif [ -f ingress.yaml ]; then
-                                \${CLI} apply -f ingress.yaml
-                            fi
-                        """
+                            """
+                        }
                     }
                     
-                    // Trigger rollout
+                    // Wait for rollout
+                    echo "Waiting for deployment rollout to complete..."
                     sh """
-                        if [ -f /tmp/jenkins-path.txt ]; then
-                            export PATH="\$(cat /tmp/jenkins-path.txt):\$PATH"
-                        fi
-                        
-                        if command -v oc &> /dev/null || [ -f /tmp/jenkins-bin/oc ]; then
-                            if [ -f /tmp/jenkins-bin/oc ]; then
-                                /tmp/jenkins-bin/oc rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=5m || true
-                            else
-                                oc rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=5m || true
-                            fi
-                        else
-                            kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=5m || true
-                        fi
+                        kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=5m || echo "Warning: Rollout status check timed out"
                     """
+                    
+                    // Show deployment status
+                    echo "Deployment status:"
+                    sh "kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME}"
                 }
             }
         }
@@ -276,9 +190,10 @@ pipeline {
     post {
         success {
             script {
-                echo "Pipeline succeeded! Application deployed to OpenShift"
-                echo "Image: ${FULL_IMAGE_NAME}"
+                echo "Pipeline succeeded! Application deployed to EKS"
+                echo "Image: ${env.FULL_IMAGE_NAME ?: 'N/A'}"
                 echo "Build Number: ${env.BUILD_NUMBER}"
+                echo "Namespace: ${NAMESPACE}"
             }
         }
         failure {
@@ -294,4 +209,3 @@ pipeline {
         }
     }
 }
-
