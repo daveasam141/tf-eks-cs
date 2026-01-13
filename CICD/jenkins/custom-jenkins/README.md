@@ -11,3 +11,10 @@ docker login
 
 # Push the image
 docker push your-dockerhub-username/jenkinscustom-agent:latest
+
+docker buildx build \
+  --platform linux/amd64 \
+  -f Dockerfile \
+  -t davidasam141/jenkinscustom-agent-2:latest \
+  --push \
+  .
