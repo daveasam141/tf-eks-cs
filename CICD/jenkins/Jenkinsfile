@@ -11,7 +11,7 @@ spec:
   serviceAccountName: jenkins
   containers:
   - name: jnlp
-    image: your-dockerhub-username/jenkins-agent-cicd:latest
+    image: davidasam141/jenkins-agent-cicd:latest
     env:
     - name: CONTAINER_ENV_VAR
       value: ""
