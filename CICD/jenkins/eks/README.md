@@ -65,6 +65,9 @@ helm repo update
 # Create namespace
 kubectl create namespace jenkins
 
+# Make sure to have gp3 installed
+
+
 # Install Jenkins
 helm install jenkins jenkins/jenkins \
   --namespace jenkins \
