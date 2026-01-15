@@ -1,0 +1,607 @@
+Started by user Jenkins Admin
+Obtained CICD/jenkins/eks/Jenkinsfile from git https://github.com/daveasam141/tf-eks-cs.git
+[Pipeline] Start of Pipeline
+[Pipeline] podTemplate
+[Pipeline] {
+[Pipeline] node
+[PodInfo] jenkins/test-5-nkz8h-h8g4v-dt1k0
+	Container [jnlp] waiting [ContainerCreating] No message
+	Container [kaniko] waiting [ContainerCreating] No message
+	Pod [Pending][ContainersNotReady] containers with unready status: [jnlp kaniko]
+Created Pod: kubernetes jenkins/test-5-nkz8h-h8g4v-dt1k0
+Agent test-5-nkz8h-h8g4v-dt1k0 is provisioned from template test_5-nkz8h-h8g4v
+---
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  annotations:
+    kubernetes.jenkins.io/last-refresh: "1768449389325"
+    buildUrl: "http://jenkins.jenkins.svc.cluster.local:8080/job/test/5/"
+    runUrl: "job/test/5/"
+  labels:
+    jenkins: "agent"
+    jenkins/jenkins-jenkins-agent: "true"
+    jenkins/label-digest: "3b00944b84bffe6f604dd33ba4eedee70273c876"
+    jenkins/label: "test_5-nkz8h"
+    kubernetes.jenkins.io/controller: "http___jenkins_jenkins_svc_cluster_local_8080x"
+  name: "test-5-nkz8h-h8g4v-dt1k0"
+  namespace: "jenkins"
+spec:
+  containers:
+  - env:
+    - name: "JENKINS_SECRET"
+      value: "********"
+    - name: "JENKINS_TUNNEL"
+      value: "jenkins-agent.jenkins.svc.cluster.local:50000"
+    - name: "JENKINS_AGENT_NAME"
+      value: "test-5-nkz8h-h8g4v-dt1k0"
+    - name: "REMOTING_OPTS"
+      value: "-noReconnectAfter 1d"
+    - name: "JENKINS_NAME"
+      value: "test-5-nkz8h-h8g4v-dt1k0"
+    - name: "JENKINS_AGENT_WORKDIR"
+      value: "/home/jenkins/agent"
+    - name: "CONTAINER_ENV_VAR"
+      value: ""
+    - name: "JENKINS_URL"
+      value: "http://jenkins.jenkins.svc.cluster.local:8080/"
+    image: "davidasam141/jenkinscustom-agent-2"
+    name: "jnlp"
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+    volumeMounts:
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  - args:
+    - "9999999"
+    command:
+    - "sleep"
+    image: "gcr.io/kaniko-project/executor:debug"
+    name: "kaniko"
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+    volumeMounts:
+    - mountPath: "/kaniko/.docker"
+      name: "docker-config"
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  nodeSelector:
+    kubernetes.io/os: "linux"
+  restartPolicy: "Never"
+  serviceAccountName: "jenkins"
+  volumes:
+  - emptyDir: {}
+    name: "docker-config"
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"
+
+Running on test-5-nkz8h-h8g4v-dt1k0 in /home/jenkins/agent/workspace/test
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+No credentials specified
+Cloning the remote Git repository
+Cloning repository https://github.com/daveasam141/tf-eks-cs.git
+ > git init /home/jenkins/agent/workspace/test # timeout=10
+Fetching upstream changes from https://github.com/daveasam141/tf-eks-cs.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.47.3'
+ > git fetch --tags --force --progress -- https://github.com/daveasam141/tf-eks-cs.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git config remote.origin.url https://github.com/daveasam141/tf-eks-cs.git # timeout=10
+ > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+Avoid second fetch
+Checking out Revision 8ade9415cb7d044401d9de52896bff6e2f1d46d9 (refs/remotes/origin/main)
+Commit message: "using kaninko"
+ > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 8ade9415cb7d044401d9de52896bff6e2f1d46d9 # timeout=10
+ > git rev-list --no-walk 932476e5f5a116565a5629b75ab1f414d2d96d09 # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] withCredentials
+Masking supported pattern matches of $DOCKERHUB_CREDENTIALS or $DOCKERHUB_CREDENTIALS_PSW
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Checkout)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] echo
+Checking out code from https://github.com/daveasam141/tf-eks-cs.git
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+No credentials specified
+Fetching changes from the remote Git repository
+Checking out Revision 8ade9415cb7d044401d9de52896bff6e2f1d46d9 (refs/remotes/origin/main)
+Commit message: "using kaninko"
+[Pipeline] echo
+Image tag set to: latest
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Test)
+[Pipeline] dir
+Running in /home/jenkins/agent/workspace/test/CICD/app
+[Pipeline] {
+[Pipeline] script
+[Pipeline] {
+[Pipeline] echo
+Running Python tests...
+[Pipeline] sh
+ > git rev-parse --resolve-git-dir /home/jenkins/agent/workspace/test/.git # timeout=10
+ > git config remote.origin.url https://github.com/daveasam141/tf-eks-cs.git # timeout=10
+Fetching upstream changes from https://github.com/daveasam141/tf-eks-cs.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.47.3'
+ > git fetch --tags --force --progress -- https://github.com/daveasam141/tf-eks-cs.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 8ade9415cb7d044401d9de52896bff6e2f1d46d9 # timeout=10
++ python3 -m venv venv
++ . venv/bin/activate
++ deactivate nondestructive
++ [ -n  ]
++ [ -n  ]
++ hash -r
++ [ -n  ]
++ unset VIRTUAL_ENV
++ unset VIRTUAL_ENV_PROMPT
++ [ ! nondestructive = nondestructive ]
++ uname
++ export VIRTUAL_ENV=/home/jenkins/agent/workspace/test/CICD/app/venv
++ _OLD_VIRTUAL_PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++ PATH=/home/jenkins/agent/workspace/test/CICD/app/venv/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++ export PATH
++ VIRTUAL_ENV_PROMPT=venv
++ export VIRTUAL_ENV_PROMPT
++ [ -n  ]
++ [ -z  ]
++ _OLD_VIRTUAL_PS1=$ 
++ PS1=(venv) $ 
++ export PS1
++ hash -r
++ pip install --upgrade pip
+Requirement already satisfied: pip in ./venv/lib/python3.13/site-packages (25.1.1)
+Collecting pip
+  Downloading pip-25.3-py3-none-any.whl.metadata (4.7 kB)
+Downloading pip-25.3-py3-none-any.whl (1.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 35.5 MB/s eta 0:00:00
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 25.1.1
+    Uninstalling pip-25.1.1:
+      Successfully uninstalled pip-25.1.1
+Successfully installed pip-25.3
++ pip install -r requirements.txt
+Collecting Flask==3.0.0 (from -r requirements.txt (line 1))
+  Downloading flask-3.0.0-py3-none-any.whl.metadata (3.6 kB)
+Collecting gunicorn==21.2.0 (from -r requirements.txt (line 2))
+  Downloading gunicorn-21.2.0-py3-none-any.whl.metadata (4.1 kB)
+Collecting pytest==7.4.3 (from -r requirements.txt (line 3))
+  Downloading pytest-7.4.3-py3-none-any.whl.metadata (7.9 kB)
+Collecting pytest-cov==4.1.0 (from -r requirements.txt (line 4))
+  Downloading pytest_cov-4.1.0-py3-none-any.whl.metadata (26 kB)
+Collecting Werkzeug>=3.0.0 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading werkzeug-3.1.5-py3-none-any.whl.metadata (4.0 kB)
+Collecting Jinja2>=3.1.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting itsdangerous>=2.1.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting click>=8.1.3 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting blinker>=1.6.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting packaging (from gunicorn==21.2.0->-r requirements.txt (line 2))
+  Downloading packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting iniconfig (from pytest==7.4.3->-r requirements.txt (line 3))
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting pluggy<2.0,>=0.12 (from pytest==7.4.3->-r requirements.txt (line 3))
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting coverage>=5.2.1 (from coverage[toml]>=5.2.1->pytest-cov==4.1.0->-r requirements.txt (line 4))
+  Downloading coverage-7.13.1-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.5 kB)
+Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Downloading flask-3.0.0-py3-none-any.whl (99 kB)
+Downloading gunicorn-21.2.0-py3-none-any.whl (80 kB)
+Downloading pytest-7.4.3-py3-none-any.whl (325 kB)
+Downloading pytest_cov-4.1.0-py3-none-any.whl (21 kB)
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+Downloading click-8.3.1-py3-none-any.whl (108 kB)
+Downloading coverage-7.13.1-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (252 kB)
+Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+Downloading werkzeug-3.1.5-py3-none-any.whl (225 kB)
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading packaging-25.0-py3-none-any.whl (66 kB)
+Installing collected packages: pluggy, packaging, MarkupSafe, itsdangerous, iniconfig, coverage, click, blinker, Werkzeug, pytest, Jinja2, gunicorn, pytest-cov, Flask
+
+Successfully installed Flask-3.0.0 Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.5 blinker-1.9.0 click-8.3.1 coverage-7.13.1 gunicorn-21.2.0 iniconfig-2.3.0 itsdangerous-2.2.0 packaging-25.0 pluggy-1.6.0 pytest-7.4.3 pytest-cov-4.1.0
++ pip install pytest pytest-cov flake8
+Requirement already satisfied: pytest in ./venv/lib/python3.13/site-packages (7.4.3)
+Requirement already satisfied: pytest-cov in ./venv/lib/python3.13/site-packages (4.1.0)
+Collecting flake8
+  Downloading flake8-7.3.0-py2.py3-none-any.whl.metadata (3.8 kB)
+Requirement already satisfied: iniconfig in ./venv/lib/python3.13/site-packages (from pytest) (2.3.0)
+Requirement already satisfied: packaging in ./venv/lib/python3.13/site-packages (from pytest) (25.0)
+Requirement already satisfied: pluggy<2.0,>=0.12 in ./venv/lib/python3.13/site-packages (from pytest) (1.6.0)
+Requirement already satisfied: coverage>=5.2.1 in ./venv/lib/python3.13/site-packages (from coverage[toml]>=5.2.1->pytest-cov) (7.13.1)
+Collecting mccabe<0.8.0,>=0.7.0 (from flake8)
+  Downloading mccabe-0.7.0-py2.py3-none-any.whl.metadata (5.0 kB)
+Collecting pycodestyle<2.15.0,>=2.14.0 (from flake8)
+  Downloading pycodestyle-2.14.0-py2.py3-none-any.whl.metadata (4.5 kB)
+Collecting pyflakes<3.5.0,>=3.4.0 (from flake8)
+  Downloading pyflakes-3.4.0-py2.py3-none-any.whl.metadata (3.5 kB)
+Downloading flake8-7.3.0-py2.py3-none-any.whl (57 kB)
+Downloading mccabe-0.7.0-py2.py3-none-any.whl (7.3 kB)
+Downloading pycodestyle-2.14.0-py2.py3-none-any.whl (31 kB)
+Downloading pyflakes-3.4.0-py2.py3-none-any.whl (63 kB)
+Installing collected packages: pyflakes, pycodestyle, mccabe, flake8
+
+Successfully installed flake8-7.3.0 mccabe-0.7.0 pycodestyle-2.14.0 pyflakes-3.4.0
++ python -m pytest test_app.py -v --cov=app --cov-report=term-missing
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-7.4.3, pluggy-1.6.0 -- /home/jenkins/agent/workspace/test/CICD/app/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/jenkins/agent/workspace/test/CICD/app
+plugins: cov-4.1.0
+collecting ... collected 7 items
+
+test_app.py::TestApp::test_echo_endpoint PASSED                          [ 14%]
+test_app.py::TestApp::test_echo_endpoint_empty PASSED                    [ 28%]
+test_app.py::TestApp::test_health_endpoint PASSED                        [ 42%]
+test_app.py::TestApp::test_hello_endpoint_default PASSED                 [ 57%]
+test_app.py::TestApp::test_hello_endpoint_with_name PASSED               [ 71%]
+test_app.py::TestApp::test_home_endpoint PASSED                          [ 85%]
+test_app.py::TestApp::test_info_endpoint PASSED                          [100%]
+
+---------- coverage: platform linux, python 3.13.5-final-0 -----------
+Name     Stmts   Miss  Cover   Missing
+--------------------------------------
+app.py      26      2    92%   63-64
+--------------------------------------
+TOTAL       26      2    92%
+
+
+============================== 7 passed in 0.22s ===============================
++ flake8 app.py test_app.py --max-line-length=100 --exclude=__pycache__
+app.py:16:1: E302 expected 2 blank lines, found 1
+app.py:26:1: E302 expected 2 blank lines, found 1
+app.py:34:1: E302 expected 2 blank lines, found 1
+app.py:43:1: E302 expected 2 blank lines, found 1
+app.py:52:1: E302 expected 2 blank lines, found 1
+app.py:62:1: E305 expected 2 blank lines after class or function definition, found 1
+app.py:65:1: W391 blank line at end of file
+test_app.py:7:1: F401 'sys' imported but unused
+test_app.py:88:1: W391 blank line at end of file
++ true
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build and Push Image)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] withCredentials
+Masking supported pattern matches of $DOCKER_PASS
+[Pipeline] {
+[Pipeline] echo
+Building and pushing image: davidasam141/cicd-learning-app:latest
+[Pipeline] container
+[Pipeline] {
+[Pipeline] sh
+Warning: A secret was passed to "sh" using Groovy String interpolation, which is insecure.
+		 Affected argument(s) used the following variable(s): [DOCKER_PASS, DOCKERHUB_CREDENTIALS_PSW]
+		 See https://jenkins.io/redirect/groovy-string-interpolation for details.
++ echo '{"auths":{"https://index.docker.io/v1/":{"username":"davidasam141","password":"****"}}}'
++ /kaniko/executor '--context=dir:///home/jenkins/agent/workspace/test/CICD/app' '--dockerfile=CICD/app/Dockerfile' '--destination=davidasam141/cicd-learning-app:latest' '--destination=davidasam141/cicd-learning-app:5' '--build-arg=APP_VERSION=5' '--cache=true'
+[36mINFO[0m[0000] Resolved base name python:3.11-slim to builder 
+[36mINFO[0m[0000] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0000] Retrieving image python:3.11-slim from registry index.docker.io 
+[36mINFO[0m[0000] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0000] Returning cached image manifest              
+[36mINFO[0m[0000] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0000] Returning cached image manifest              
+[36mINFO[0m[0000] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0000] Returning cached image manifest              
+[36mINFO[0m[0000] Built cross stage deps: map[0:[/root/.local]] 
+[36mINFO[0m[0000] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0000] Returning cached image manifest              
+[36mINFO[0m[0000] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0000] Returning cached image manifest              
+[36mINFO[0m[0000] Executing 0 build triggers                   
+[36mINFO[0m[0000] Building stage 'python:3.11-slim' [idx: '0', base-idx: '-1'] 
+[36mINFO[0m[0000] Checking for cached layer index.docker.io/davidasam141/cicd-learning-app/cache:e8f66081724665b2967f2f01355f755983917ede5ab19b9ea6b4de126592d826... 
+[36mINFO[0m[0000] No cached layer found for cmd RUN pip install --no-cache-dir --user -r requirements.txt 
+[36mINFO[0m[0000] Unpacking rootfs as cmd COPY requirements.txt . requires it. 
+[36mINFO[0m[0003] WORKDIR /app                                 
+[36mINFO[0m[0003] Cmd: workdir                                 
+[36mINFO[0m[0003] Changed working directory to /app            
+[36mINFO[0m[0003] Creating directory /app with uid -1 and gid -1 
+[36mINFO[0m[0003] Taking snapshot of files...                  
+[36mINFO[0m[0003] COPY requirements.txt .                      
+[36mINFO[0m[0003] Taking snapshot of files...                  
+[36mINFO[0m[0003] RUN pip install --no-cache-dir --user -r requirements.txt 
+[36mINFO[0m[0003] Initializing snapshotter ...                 
+[36mINFO[0m[0003] Taking snapshot of full filesystem...        
+[36mINFO[0m[0004] Cmd: /bin/sh                                 
+[36mINFO[0m[0004] Args: [-c pip install --no-cache-dir --user -r requirements.txt] 
+[36mINFO[0m[0004] Running: [/bin/sh -c pip install --no-cache-dir --user -r requirements.txt] 
+Collecting Flask==3.0.0 (from -r requirements.txt (line 1))
+  Downloading flask-3.0.0-py3-none-any.whl.metadata (3.6 kB)
+Collecting gunicorn==21.2.0 (from -r requirements.txt (line 2))
+  Downloading gunicorn-21.2.0-py3-none-any.whl.metadata (4.1 kB)
+Collecting pytest==7.4.3 (from -r requirements.txt (line 3))
+  Downloading pytest-7.4.3-py3-none-any.whl.metadata (7.9 kB)
+Collecting pytest-cov==4.1.0 (from -r requirements.txt (line 4))
+  Downloading pytest_cov-4.1.0-py3-none-any.whl.metadata (26 kB)
+Collecting Werkzeug>=3.0.0 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading werkzeug-3.1.5-py3-none-any.whl.metadata (4.0 kB)
+Collecting Jinja2>=3.1.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting itsdangerous>=2.1.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting click>=8.1.3 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting blinker>=1.6.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting packaging (from gunicorn==21.2.0->-r requirements.txt (line 2))
+  Downloading packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting iniconfig (from pytest==7.4.3->-r requirements.txt (line 3))
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting pluggy<2.0,>=0.12 (from pytest==7.4.3->-r requirements.txt (line 3))
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting coverage>=5.2.1 (from coverage[toml]>=5.2.1->pytest-cov==4.1.0->-r requirements.txt (line 4))
+  Downloading coverage-7.13.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.5 kB)
+Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->Flask==3.0.0->-r requirements.txt (line 1))
+  Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Downloading flask-3.0.0-py3-none-any.whl (99 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 99.7/99.7 kB 9.3 MB/s eta 0:00:00
+Downloading gunicorn-21.2.0-py3-none-any.whl (80 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 80.2/80.2 kB 269.6 MB/s eta 0:00:00
+Downloading pytest-7.4.3-py3-none-any.whl (325 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 325.1/325.1 kB 30.6 MB/s eta 0:00:00
+Downloading pytest_cov-4.1.0-py3-none-any.whl (21 kB)
+Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+Downloading click-8.3.1-py3-none-any.whl (108 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 108.3/108.3 kB 308.5 MB/s eta 0:00:00
+Downloading coverage-7.13.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (251 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 251.6/251.6 kB 346.9 MB/s eta 0:00:00
+Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 134.9/134.9 kB 321.3 MB/s eta 0:00:00
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading werkzeug-3.1.5-py3-none-any.whl (225 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 225.0/225.0 kB 369.7 MB/s eta 0:00:00
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading packaging-25.0-py3-none-any.whl (66 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 66.5/66.5 kB 268.5 MB/s eta 0:00:00
+Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+Installing collected packages: pluggy, packaging, MarkupSafe, itsdangerous, iniconfig, coverage, click, blinker, Werkzeug, pytest, Jinja2, gunicorn, pytest-cov, Flask
+  WARNING: The scripts coverage, coverage-3.11 and coverage3 are installed in '/root/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The scripts py.test and pytest are installed in '/root/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The script gunicorn is installed in '/root/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The script flask is installed in '/root/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+Successfully installed Flask-3.0.0 Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.5 blinker-1.9.0 click-8.3.1 coverage-7.13.1 gunicorn-21.2.0 iniconfig-2.3.0 itsdangerous-2.2.0 packaging-25.0 pluggy-1.6.0 pytest-7.4.3 pytest-cov-4.1.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+
+[notice] A new release of pip is available: 24.0 -> 25.3
+[notice] To update, run: pip install --upgrade pip
+[36mINFO[0m[0009] Taking snapshot of full filesystem...        
+[36mINFO[0m[0010] Pushing layer index.docker.io/davidasam141/cicd-learning-app/cache:e8f66081724665b2967f2f01355f755983917ede5ab19b9ea6b4de126592d826 to cache now 
+[36mINFO[0m[0010] Pushing image to index.docker.io/davidasam141/cicd-learning-app/cache:e8f66081724665b2967f2f01355f755983917ede5ab19b9ea6b4de126592d826 
+[33mWARN[0m[0010] Error uploading layer to cache: failed to push to destination index.docker.io/davidasam141/cicd-learning-app/cache:e8f66081724665b2967f2f01355f755983917ede5ab19b9ea6b4de126592d826: HEAD https://index.docker.io/v2/davidasam141/cicd-learning-app/cache/manifests/e8f66081724665b2967f2f01355f755983917ede5ab19b9ea6b4de126592d826: unexpected status code 401 Unauthorized (HEAD responses have no body, use GET for details) 
+[36mINFO[0m[0010] Saving file root/.local for later use        
+[36mINFO[0m[0010] Deleting filesystem...                       
+[36mINFO[0m[0011] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0011] Returning cached image manifest              
+[36mINFO[0m[0011] Retrieving image manifest python:3.11-slim   
+[36mINFO[0m[0011] Returning cached image manifest              
+[36mINFO[0m[0011] Executing 0 build triggers                   
+[36mINFO[0m[0011] Building stage 'python:3.11-slim' [idx: '1', base-idx: '-1'] 
+[36mINFO[0m[0011] Cmd: EXPOSE                                  
+[36mINFO[0m[0011] Adding exposed port: 5000/tcp                
+[36mINFO[0m[0011] Unpacking rootfs as cmd COPY --from=builder /root/.local /root/.local requires it. 
+[36mINFO[0m[0013] WORKDIR /app                                 
+[36mINFO[0m[0013] Cmd: workdir                                 
+[36mINFO[0m[0013] Changed working directory to /app            
+[36mINFO[0m[0013] Creating directory /app with uid -1 and gid -1 
+[36mINFO[0m[0013] Taking snapshot of files...                  
+[36mINFO[0m[0013] COPY --from=builder /root/.local /root/.local 
+[36mINFO[0m[0013] Taking snapshot of files...                  
+[36mINFO[0m[0014] COPY app.py .                                
+[36mINFO[0m[0014] Taking snapshot of files...                  
+[36mINFO[0m[0014] ENV PATH=/root/.local/bin:$PATH              
+[36mINFO[0m[0014] No files changed in this command, skipping snapshotting. 
+[36mINFO[0m[0014] ENV PYTHONUNBUFFERED=1                       
+[36mINFO[0m[0014] No files changed in this command, skipping snapshotting. 
+[36mINFO[0m[0014] ENV PORT=5000                                
+[36mINFO[0m[0014] No files changed in this command, skipping snapshotting. 
+[36mINFO[0m[0014] EXPOSE 5000                                  
+[36mINFO[0m[0014] Cmd: EXPOSE                                  
+[36mINFO[0m[0014] Adding exposed port: 5000/tcp                
+[36mINFO[0m[0014] No files changed in this command, skipping snapshotting. 
+[36mINFO[0m[0014] HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" 
+[36mINFO[0m[0014] No files changed in this command, skipping snapshotting. 
+[36mINFO[0m[0014] CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "30", "app:app"] 
+[36mINFO[0m[0014] No files changed in this command, skipping snapshotting. 
+[36mINFO[0m[0014] Pushing image to davidasam141/cicd-learning-app:latest 
+[36mINFO[0m[0017] Pushed index.docker.io/davidasam141/cicd-learning-app@sha256:de01fde4bf543e22699bd8cd893bcc2faabd94b5cece42e7c00a563f61f8b481 
+[36mINFO[0m[0017] Pushing image to davidasam141/cicd-learning-app:5 
+[36mINFO[0m[0019] Pushed index.docker.io/davidasam141/cicd-learning-app@sha256:de01fde4bf543e22699bd8cd893bcc2faabd94b5cece42e7c00a563f61f8b481 
+[Pipeline] }
+[Pipeline] // container
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Security Scan)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] echo
+Scanning image for vulnerabilities...
+[Pipeline] sh
++ trivy image --exit-code 0 --severity HIGH,CRITICAL davidasam141/cicd-learning-app:latest
+2026-01-15T03:57:10.943Z	[34mINFO[0m	Need to update DB
+2026-01-15T03:57:10.944Z	[34mINFO[0m	DB Repository: ghcr.io/aquasecurity/trivy-db
+2026-01-15T03:57:10.944Z	[34mINFO[0m	Downloading DB...
+27.44 MiB / 78.76 MiB [--------------------->_______________________________________] 34.84% ? p/s ?57.38 MiB / 78.76 MiB [-------------------------------------------->________________] 72.85% ? p/s ?78.76 MiB / 78.76 MiB [----------------------------------------------------------->] 100.00% ? p/s ?78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 85.55 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 85.55 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 85.55 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 80.03 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 80.03 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 80.03 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 74.86 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 74.86 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 74.86 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 70.03 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 70.03 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 70.03 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 65.52 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 65.52 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 65.52 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 61.29 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 61.29 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 61.29 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 57.33 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 57.33 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 57.33 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [---------------------------------------------->] 100.00% 53.64 MiB p/s ETA 0s78.76 MiB / 78.76 MiB [-------------------------------------------------] 100.00% 16.22 MiB p/s 5.1s2026-01-15T03:57:16.201Z	[34mINFO[0m	Vulnerability scanning is enabled
+2026-01-15T03:57:16.201Z	[34mINFO[0m	Secret scanning is enabled
+2026-01-15T03:57:16.201Z	[34mINFO[0m	If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2026-01-15T03:57:16.201Z	[34mINFO[0m	Please see also https://aquasecurity.github.io/trivy/v0.48/docs/scanner/secret/#recommendation for faster secret detection
+2026-01-15T03:57:21.039Z	[34mINFO[0m	Detected OS: debian
+2026-01-15T03:57:21.040Z	[34mINFO[0m	Detecting Debian vulnerabilities...
+2026-01-15T03:57:21.055Z	[34mINFO[0m	Number of language-specific files: 1
+2026-01-15T03:57:21.055Z	[34mINFO[0m	Detecting python-pkg vulnerabilities...
+
+davidasam141/cicd-learning-app:latest (debian 13.3)
+===================================================
+Total: 0 (HIGH: 0, CRITICAL: 0)
+
+2026-01-15T03:57:21.058Z	[34mINFO[0m	Table result includes only package filenames. Use '--format json' option to get the full path to the package file.
+
+Python (python-pkg)
+===================
+Total: 3 (HIGH: 3, CRITICAL: 0)
+
+┌───────────────────────────┬─────────────────────┬──────────┬────────┬───────────────────┬───────────────┬─────────────────────────────────────────────────────────┐
+│          Library          │    Vulnerability    │ Severity │ Status │ Installed Version │ Fixed Version │                          Title                          │
+├───────────────────────────┼─────────────────────┼──────────┼────────┼───────────────────┼───────────────┼─────────────────────────────────────────────────────────┤
+│ gunicorn (METADATA)       │ CVE-2024-1135       │ HIGH     │ fixed  │ 21.2.0            │ 22.0.0        │ python-gunicorn: HTTP Request Smuggling due to improper │
+│                           │                     │          │        │                   │               │ validation of Transfer-Encoding headers                 │
+│                           │                     │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2024-1135               │
+│                           ├─────────────────────┤          │        │                   │               ├─────────────────────────────────────────────────────────┤
+│                           │ CVE-2024-6827       │          │        │                   │               │ gunicorn: HTTP Request Smuggling in benoitc/gunicorn    │
+│                           │                     │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2024-6827               │
+├───────────────────────────┼─────────────────────┤          │        ├───────────────────┼───────────────┼─────────────────────────────────────────────────────────┤
+│ jaraco.context (METADATA) │ GHSA-58pv-8j8x-9vj2 │          │        │ 5.3.0             │ 6.1.0         │ jaraco.context Has a Path Traversal Vulnerability       │
+│                           │                     │          │        │                   │               │ https://github.com/advisories/GHSA-58pv-8j8x-9vj2       │
+└───────────────────────────┴─────────────────────┴──────────┴────────┴───────────────────┴───────────────┴─────────────────────────────────────────────────────────┘
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Deploy to EKS)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] echo
+Deploying to EKS namespace: cicd-app
+[Pipeline] echo
+Verifying cluster access...
+[Pipeline] sh
++ kubectl version --client
+Client Version: v1.35.0
+Kustomize Version: v5.7.1
+[Pipeline] echo
+Verifying namespace cicd-app exists...
+[Pipeline] sh
++ kubectl get namespace cicd-app
+NAME       STATUS   AGE
+cicd-app   Active   10m
+[Pipeline] dir
+Running in /home/jenkins/agent/workspace/test/CICD/jenkins/eks
+[Pipeline] {
+[Pipeline] withCredentials
+Masking supported pattern matches of $DOCKER_PASS
+[Pipeline] {
+[Pipeline] sh
++ perl -i -pe s|image:.*cicd-learning-app.*|image: davidasam141/cicd-learning-app:latest|g deployment.yaml
++ perl -i -pe s|(name: APP_VERSION\s+value: ).*|5|g deployment.yaml
+[Pipeline] echo
+Applying Kubernetes manifests...
+[Pipeline] sh
++ kubectl apply -f deployment.yaml
+deployment.apps/cicd-app created
++ kubectl apply -f service.yaml
+service/cicd-app created
+[Pipeline] sh
++ [ -f ingress.yaml ]
++ kubectl apply -f ingress.yaml
+Warning: annotation "kubernetes.io/ingress.class" is deprecated, please use 'spec.ingressClassName' instead
+ingress.networking.k8s.io/cicd-app created
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] echo
+Waiting for deployment rollout to complete...
+[Pipeline] sh
++ kubectl rollout status deployment/cicd-app -n cicd-app --timeout=5m
+Waiting for deployment "cicd-app" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "cicd-app" rollout to finish: 1 of 2 updated replicas are available...
+deployment "cicd-app" successfully rolled out
+[Pipeline] echo
+Deployment status:
+[Pipeline] sh
++ kubectl get pods -n cicd-app -l app=cicd-app
+NAME                        READY   STATUS    RESTARTS   AGE
+cicd-app-57f6468897-2ggq4   1/1     Running   0          13s
+cicd-app-57f6468897-jq2ht   1/1     Running   0          13s
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] echo
+Pipeline completed
+[Pipeline] script
+[Pipeline] {
+[Pipeline] echo
+Pipeline succeeded! Application deployed to EKS
+[Pipeline] echo
+Image: davidasam141/cicd-learning-app:latest
+[Pipeline] echo
+Build Number: 5
+[Pipeline] echo
+Namespace: cicd-app
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] }
+[Pipeline] // podTemplate
+[Pipeline] End of Pipeline
+Finished: SUCCESS
