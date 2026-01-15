@@ -92,31 +92,23 @@ spec:
         
         stage('Build and Push Image') {
             steps {
-                dir('CICD/app') {
-                    script {
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            env.FULL_IMAGE_NAME = "${DOCKER_USER}/${IMAGE_NAME}:${env.IMAGE_TAG}"
-                            echo "Building and pushing image: ${env.FULL_IMAGE_NAME}"
-                            
-                            // Create Docker config for Kaniko authentication
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        env.FULL_IMAGE_NAME = "${DOCKER_USER}/${IMAGE_NAME}:${env.IMAGE_TAG}"
+                        echo "Building and pushing image: ${env.FULL_IMAGE_NAME}"
+                        
+                        // Build and push with Kaniko
+                        container('kaniko') {
                             sh """
-                                echo '{"auths":{"https://index.docker.io/v1/":{"username":"'\${DOCKER_USER}'","password":"'\${DOCKER_PASS}'"}}}' > /tmp/config.json
+                                echo '{"auths":{"https://index.docker.io/v1/":{"username":"${DOCKER_USER}","password":"${DOCKER_PASS}"}}}' > /kaniko/.docker/config.json
+                                /kaniko/executor \
+                                    --context=dir://\${WORKSPACE}/CICD/app \
+                                    --dockerfile=CICD/app/Dockerfile \
+                                    --destination=${env.FULL_IMAGE_NAME} \
+                                    --destination=${DOCKER_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} \
+                                    --build-arg=APP_VERSION=${env.BUILD_NUMBER} \
+                                    --cache=true
                             """
-                            
-                            // Build and push with Kaniko
-                            container('kaniko') {
-                                sh """
-                                    mkdir -p /kaniko/.docker
-                                    cp /tmp/config.json /kaniko/.docker/config.json
-                                    /kaniko/executor \
-                                        --context=dir:///home/jenkins/agent/workspace/\${JOB_NAME}/CICD/app \
-                                        --dockerfile=Dockerfile \
-                                        --destination=${env.FULL_IMAGE_NAME} \
-                                        --destination=${DOCKER_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} \
-                                        --build-arg=APP_VERSION=${env.BUILD_NUMBER} \
-                                        --cache=true
-                                """
-                            }
                         }
                     }
                 }
@@ -210,10 +202,7 @@ spec:
             }
         }
         always {
-            script {
-                // Clean up temporary files
-                sh "rm -f /tmp/config.json || true"
-            }
+            echo "Pipeline completed"
         }
     }
 }
