@@ -135,11 +135,9 @@ spec:
                     echo "Verifying cluster access..."
                     sh "kubectl version --client"
                     
-                    // Create namespace (idempotent)
-                    echo "Creating namespace ${NAMESPACE}..."
-                    sh """
-                        kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-                    """
+                    // Verify namespace exists
+                    echo "Verifying namespace ${NAMESPACE} exists..."
+                    sh "kubectl get namespace ${NAMESPACE}"
                     
                     // Update deployment with new image and apply manifests
                     dir('CICD/jenkins/eks') {
@@ -159,7 +157,6 @@ spec:
                             // Apply manifests
                             echo "Applying Kubernetes manifests..."
                             sh """
-                                kubectl apply -f namespace.yaml
                                 kubectl apply -f deployment.yaml
                                 kubectl apply -f service.yaml
                             """
