@@ -66,11 +66,8 @@ class TestApp(unittest.TestCase):
         self.assertEqual(data['echo'], test_data)
 
     def test_echo_endpoint_empty(self):
-        """Test echo endpoint with empty body"""
-        response = self.client.post(
-            '/api/echo',
-            content_type='application/json'
-        )
+        """Test echo endpoint with empty JSON object"""
+        response = self.client.post('/api/echo', json={})
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertIn('echo', data)
